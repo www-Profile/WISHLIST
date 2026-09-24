@@ -7,6 +7,20 @@ const SUPABASE_ANON_KEY = 'sb_publishable_DtksfpZ0Nn1-SJBbiyETfw_Ak8t807o';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================
+//  ID ПОЛЬЗОВАТЕЛЯ (анонимный, хранится в localStorage)
+// ============================================================
+function getUserId() {
+  let id = localStorage.getItem('wishlist_user_id');
+  if (!id) {
+    id = 'user_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('wishlist_user_id', id);
+  }
+  return id;
+}
+
+const USER_ID = getUserId();
+
+// ============================================================
 //  ДАТА ДНЯ РОЖДЕНИЯ — 6 ДЕКАБРЯ
 // ============================================================
 const BIRTHDAY = new Date(new Date().getFullYear(), 11, 6);
@@ -110,7 +124,7 @@ function renderWishes() {
     });
   });
 
-  drawDividers(); // ← ВЕРНУЛИ
+  drawDividers();
 }
 
 // ============================================================
@@ -214,14 +228,25 @@ function openModal(id) {
   modalTitle.textContent = wish.name;
   modalPrice.textContent = wish.price ? formatPrice(wish.price, wish.currency) : '';
 
+  // Логика кнопки:
+  // - done         → "Уже исполнено", disabled
+  // - reserved + я  → "Отменить бронь"
+  // - reserved + не я → "Забранировано", disabled
+  // - wanted        → "Забранировать"
+  const isMine = wish.reserved_by === USER_ID;
+
   if (wish.status === 'done') {
     modalAction.textContent = 'Уже исполнено';
     modalAction.classList.remove('is-reserved');
     modalAction.disabled = true;
-  } else if (wish.status === 'reserved') {
+  } else if (wish.status === 'reserved' && isMine) {
     modalAction.textContent = 'Отменить бронь';
     modalAction.classList.add('is-reserved');
     modalAction.disabled = false;
+  } else if (wish.status === 'reserved' && !isMine) {
+    modalAction.textContent = 'Забранировано';
+    modalAction.classList.remove('is-reserved');
+    modalAction.disabled = true;
   } else {
     modalAction.textContent = 'Забранировать';
     modalAction.classList.remove('is-reserved');
@@ -252,18 +277,21 @@ modalAction.addEventListener('click', async () => {
   const wish = wishes.find(w => w.id === activeWishId);
   if (!wish) return;
 
-  let newStatus;
+  let newStatus, newReservedBy;
+
   if (wish.status === 'wanted') {
     newStatus = 'reserved';
-  } else if (wish.status === 'reserved') {
+    newReservedBy = USER_ID;
+  } else if (wish.status === 'reserved' && wish.reserved_by === USER_ID) {
     newStatus = 'wanted';
+    newReservedBy = null;
   } else {
-    return;
+    return; // не моя бронь — ничего не делаем
   }
 
   const { error } = await supabaseClient
     .from('wishes')
-    .update({ status: newStatus })
+    .update({ status: newStatus, reserved_by: newReservedBy })
     .eq('id', activeWishId);
 
   if (error) {
@@ -273,6 +301,7 @@ modalAction.addEventListener('click', async () => {
   }
 
   wish.status = newStatus;
+  wish.reserved_by = newReservedBy;
   closeModal();
   renderWishes();
 });
