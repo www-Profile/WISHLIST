@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wishlist</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>WISHLIST</h1>
+      <p>Список желаний на день рождения</p>
+    </header>
+
+    <div class="countdown">
+      <span class="countdown-label">До праздника</span>
+      <span id="countdown-text" class="countdown-value">—</span>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="wanted">Желания</button>
+      <button class="filter-btn" data-filter="reserved">Забранировано</button>
+      <button class="filter-btn" data-filter="done">Исполнено</button>
+    </div>
+
+    <div class="wish-list" id="wish-list"></div>
+  </div>
+
+<!-- МОДАЛКА -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+
+    <!-- СЕКЦИЯ 1: шапка — две колонки (текст слева, крестик справа) -->
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title"></h2>
+      <button class="modal-close" id="modal-close">×</button>
+    </div>
+
+<!-- СЕКЦИЯ 2: тело — цена -->
+<div class="modal-body">
+  <div class="modal-price" id="modal-price"></div>
+</div>
+
+    <!-- СЕКЦИЯ 3: подвал — кнопка -->
+    <div class="modal-footer">
+      <button class="modal-action" id="modal-action">Забранировать</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+</body>
+</html>

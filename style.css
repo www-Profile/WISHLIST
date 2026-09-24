@@ -1,0 +1,305 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+  background: #1a1a1a;
+  min-height: 100vh;
+  padding: 60px 20px;
+  color: #eaeaea;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* ==== HEADER ==== */
+header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: 8px;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+header p {
+  font-size: 0.9rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #777;
+}
+
+/* ==== COUNTDOWN ==== */
+.countdown {
+  text-align: center;
+  margin-bottom: 50px;
+  padding: 30px 20px;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+}
+
+.countdown-label {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #777;
+  margin-bottom: 14px;
+}
+
+.countdown-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #FF6347;
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==== FILTERS ==== */
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filters button {
+  padding: 10px 40px;
+  background: transparent;
+  border: 1px solid #333;
+  color: #aaa;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: all 0.25s ease;
+}
+
+.filters button:hover {
+  border-color: #FF6347;
+  color: #FF6347;
+}
+
+.filters button.active {
+  background: #FF6347;
+  border-color: #FF6347;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+/* ==== WISH LIST ==== */
+.wish-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0;
+  border: 1px solid #2a2a2a;
+
+}
+
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  padding: 60px 20px;
+  border-right: 1px solid #2a2a2a;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+/* ==== CARD ==== */
+.wish-card {
+  background: #1a1a1a;
+  padding: 28px 24px;
+  position: relative;
+  transition: background 0.25s ease;
+  animation: appear 0.35s ease;
+  cursor: pointer;
+}
+
+@keyframes appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+
+.wish-card h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 10px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.wish-card .price {
+  font-size: 0.9rem;
+  color: #FF6347;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* ==== MODAL ==== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 100;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+  animation: modalIn 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- СЕКЦИЯ 1: ШАПКА (2 колонки) --- */
+.modal-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.modal-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid #333;
+  color: #888;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  border-color: #FF6347;
+  color: #FF6347;
+}
+
+/* --- СЕКЦИЯ 2: ТЕЛО --- */
+.modal-body {
+  padding: 20px 20px 0px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-price {
+  font-size: 1.1rem;
+  color: #FF6347;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.modal-price:empty {
+  display: none;
+}
+
+.modal-desc {
+  font-size: 0.9rem;
+  color: #999;
+  line-height: 1.6;
+}
+
+.modal-desc:empty {
+  display: none;
+}
+
+/* --- СЕКЦИЯ 3: ПОДВАЛ --- */
+.modal-footer {
+  padding: 20px ;
+}
+
+.modal-action {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  border: 1px solid #FF6347;
+  color: #FF6347;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  transition: all 0.25s ease;
+}
+
+.modal-action:hover {
+  background: #FF6347;
+  color: #1a1a1a;
+}
+
+.modal-action.is-reserved {
+  background: #FF6347;
+  color: #1a1a1a;
+}
+
+.modal-action.is-reserved:hover {
+  background: transparent;
+  color: #FF6347;
+}
+
+.modal-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==== MOBILE ==== */
+@media (max-width: 600px) {
+  body { padding: 40px 16px; }
+  header h1 { font-size: 2rem; letter-spacing: 5px; }
+  .countdown-value { font-size: 1.5rem; }
+  .filters button { padding: 8px 14px; font-size: 0.7rem; }
+  .modal-header { padding: 24px 20px 16px; }
+  .modal-body { padding: 20px; }
+  .modal-footer { padding: 0 20px 20px; }
+}
