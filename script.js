@@ -137,7 +137,7 @@ function drawDividers() {
     rightDivider.style.position = 'absolute';
     rightDivider.style.top = padTop + 'px';
     rightDivider.style.right = '-2px';
-    rightDivider.style.width = '3px';
+    rightDivider.style.width = '2px';
     rightDivider.style.height = innerHeight + 'px';
     rightDivider.style.background = '#FF6347';
     rightDivider.style.borderRadius = '10px';
@@ -150,7 +150,7 @@ function drawDividers() {
     bottomDivider.style.left = padLeft + 'px';
     bottomDivider.style.bottom = '-2px';
     bottomDivider.style.width = innerWidth + 'px';
-    bottomDivider.style.height = '3px';
+    bottomDivider.style.height = '2px';
     bottomDivider.style.background = '#FF6347';
     bottomDivider.style.borderRadius = '10px';
     bottomDivider.style.zIndex = '1';
