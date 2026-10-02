@@ -7,7 +7,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_DtksfpZ0Nn1-SJBbiyETfw_Ak8t807o';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================
-//  ID ПОЛЬЗОВАТЕЛЯ (анонимный, хранится в localStorage)
+//  ID ПОЛЬЗОВАТЕЛЯ
 // ============================================================
 function getUserId() {
   let id = localStorage.getItem('wishlist_user_id');
@@ -42,6 +42,9 @@ const countdownText = document.getElementById('countdown-text');
 const currencySymbols = { RUB: '₽', USD: '$', EUR: '€' };
 const currencyFormats = { RUB: 'ru-RU', USD: 'en-US', EUR: 'de-DE' };
 
+// Папка с локальными картинками
+const IMAGES_PATH = 'images/';
+
 // ==== ОБРАТНЫЙ ОТСЧЁТ ====
 function updateCountdown() {
   const diff = BIRTHDAY - new Date();
@@ -61,7 +64,7 @@ updateCountdown();
 
 // ==== ФОРМАТ ЦЕНЫ ====
 function formatPrice(price, currency) {
-  if (price === null || price === undefined) return '';
+  if (price === null || price === undefined || price === '') return '';
   const cur = currency || 'RUB';
   const symbol = currencySymbols[cur] || '₽';
   const locale = currencyFormats[cur] || 'ru-RU';
@@ -71,12 +74,14 @@ function formatPrice(price, currency) {
 
 function escapeHtml(text) {
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = text == null ? '' : text;
   return div.innerHTML;
 }
 
 // ==== ЗАГРУЗКА ====
 async function loadWishes() {
+  renderSkeletons(); // показываем серые блоки пока грузим
+
   const { data, error } = await supabaseClient
     .from('wishes')
     .select('*')
@@ -92,7 +97,20 @@ async function loadWishes() {
   renderWishes();
 }
 
-// ==== ОТРИСОВКА ====
+// ==== СКЕЛЕТОНЫ (заглушки на время загрузки) ====
+function renderSkeletons(count = 6) {
+  const card = `
+    <div class="wish-card skeleton">
+      <div class="sk-line sk-title"></div>
+      <div class="sk-image"></div>
+      <div class="sk-line sk-price"></div>
+    </div>
+  `;
+  wishList.innerHTML = card.repeat(count);
+  drawDividers();
+}
+
+// ==== ОТРИСОВКА БЛОКОВ ====
 function renderWishes() {
   const filtered = wishes.filter(w => w.status === currentFilter);
 
@@ -102,6 +120,10 @@ function renderWishes() {
   }
 
   wishList.innerHTML = filtered.map(w => {
+    const imageHTML = w.image
+      ? `<div class="wish-image"><img src="${IMAGES_PATH}${escapeHtml(w.image)}" alt="" loading="lazy"></div>`
+      : '';
+
     const priceHTML = w.price
       ? `<div class="price">${formatPrice(w.price, w.currency)}</div>`
       : '';
@@ -113,6 +135,7 @@ function renderWishes() {
     return `
       <div class="wish-card ${extraClass}" data-id="${w.id}">
         <h3>${escapeHtml(w.name)}</h3>
+        ${imageHTML}
         ${priceHTML}
       </div>
     `;
@@ -213,10 +236,19 @@ window.addEventListener('resize', () => {
   resizeTimeout = setTimeout(drawDividers, 150);
 });
 
+// Автообновление разделителей каждые 5 секунд
+setInterval(() => {
+  if (document.querySelectorAll('.wish-card').length) {
+    drawDividers();
+  }
+}, 1000);
+
 // ==== МОДАЛКА ====
 const modalOverlay = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
+const modalImage = document.getElementById('modal-image');
 const modalPrice = document.getElementById('modal-price');
+const modalLink = document.getElementById('modal-link');
 const modalAction = document.getElementById('modal-action');
 const modalClose = document.getElementById('modal-close');
 
@@ -226,13 +258,29 @@ function openModal(id) {
 
   activeWishId = id;
   modalTitle.textContent = wish.name;
+
+  // Фото — то же самое, что и в блоке
+  if (wish.image) {
+    modalImage.innerHTML = `<img src="${IMAGES_PATH}${escapeHtml(wish.image)}" alt="" loading="lazy">`;
+    modalImage.style.display = '';
+  } else {
+    modalImage.innerHTML = '';
+    modalImage.style.display = 'none';
+  }
+
+  // Цена
   modalPrice.textContent = wish.price ? formatPrice(wish.price, wish.currency) : '';
 
-  // Логика кнопки:
-  // - done         → "Уже исполнено", disabled
-  // - reserved + я  → "Отменить бронь"
-  // - reserved + не я → "Забранировано", disabled
-  // - wanted        → "Забранировать"
+  // Ссылка
+  if (wish.url) {
+    modalLink.href = wish.url;
+    modalLink.style.display = '';
+  } else {
+    modalLink.removeAttribute('href');
+    modalLink.style.display = 'none';
+  }
+
+  // Логика кнопки
   const isMine = wish.reserved_by === USER_ID;
 
   if (wish.status === 'done') {
@@ -286,7 +334,7 @@ modalAction.addEventListener('click', async () => {
     newStatus = 'wanted';
     newReservedBy = null;
   } else {
-    return; // не моя бронь — ничего не делаем
+    return;
   }
 
   const { error } = await supabaseClient

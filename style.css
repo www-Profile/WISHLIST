@@ -104,7 +104,7 @@ header p {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 0;
   border: 1px solid #2a2a2a;
-
+  align-items: stretch;
 }
 
 .empty {
@@ -126,6 +126,12 @@ header p {
   transition: background 0.25s ease;
   animation: appear 0.35s ease;
   cursor: pointer;
+
+  /* вот тут магия: колонка на всю высоту ячейки */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
 }
 
 @keyframes appear {
@@ -133,17 +139,37 @@ header p {
   to { opacity: 1; }
 }
 
-
 .wish-card h3 {
   font-size: 0.9rem;
   font-weight: 600;
   color: #ffffff;
-  margin-bottom: 10px;
   line-height: 1.4;
   word-wrap: break-word;
 }
 
+/* картинка растягивается и центрируется */
+.wish-card .wish-image {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 2px;
+  min-height: 0;
+}
+
+.wish-card .wish-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* цена прижата к низу */
 .wish-card .price {
+  margin-top: auto;
   font-size: 0.9rem;
   color: #FF6347;
   font-weight: 600;
@@ -180,6 +206,8 @@ header p {
   animation: modalIn 0.3s ease;
   display: flex;
   flex-direction: column;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 @keyframes modalIn {
@@ -187,7 +215,7 @@ header p {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- СЕКЦИЯ 1: ШАПКА (2 колонки) --- */
+/* --- СЕКЦИЯ 1: ШАПКА --- */
 .modal-header {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -229,6 +257,24 @@ header p {
   padding: 20px 20px 0px 20px;
   display: flex;
   flex-direction: column;
+  gap: 14px;
+}
+
+.modal-image {
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 .modal-price {
@@ -242,19 +288,35 @@ header p {
   display: none;
 }
 
-.modal-desc {
-  font-size: 0.9rem;
-  color: #999;
-  line-height: 1.6;
-}
-
-.modal-desc:empty {
-  display: none;
-}
-
 /* --- СЕКЦИЯ 3: ПОДВАЛ --- */
 .modal-footer {
-  padding: 20px ;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-link {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid #333;
+  color: #aaa;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.modal-link:hover {
+  border-color: #FF6347;
+  color: #FF6347;
 }
 
 .modal-action {
@@ -298,4 +360,55 @@ header p {
   .modal-header { padding: 24px 20px 16px; }
   .modal-body { padding: 20px; }
   .modal-footer { padding: 0 20px 20px; }
+}
+
+/* ==== SKELETON (загрузка) ==== */
+.wish-card.skeleton {
+  pointer-events: none;
+  cursor: default;
+  animation: none;
+}
+
+.sk-line,
+.sk-image {
+  background: #2a2a2a;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sk-line::after,
+.sk-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+.sk-title {
+  height: 14px;
+  width: 70%;
+}
+
+.sk-image {
+  flex: 1 1 auto;
+  min-height: 120px;
+  width: 100%;
+}
+
+.sk-price {
+  height: 14px;
+  width: 40%;
+  margin-top: auto;
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
