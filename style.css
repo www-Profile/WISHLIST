@@ -62,10 +62,25 @@ header p {
   align-items: stretch;
 }
 
+/* ==== ПУСТОЕ СОСТОЯНИЕ ==== */
 .empty {
   grid-column: 1 / -1;
-  text-align: center; color: #666; font-size: 0.9rem;
-  letter-spacing: 2px; padding: 60px 20px;
+  text-align: center;
+  padding: 80px 20px;
+  animation: appear 0.5s ease;
+}
+
+.empty-icon {
+  font-size: 5rem;
+  margin-bottom: 15px;
+  opacity: 0.8;
+}
+
+.empty-text {
+  font-size: 0.9rem;
+  color: #666;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 /* ==== CARD ==== */
@@ -94,12 +109,22 @@ header p {
 
 .wish-card .wish-image {
   flex: 1 1 auto;
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden; border-radius: 2px; min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 2px;
+  min-height: 0;
+  /* ДОБАВЛЯЕМ ОГРАНИЧЕНИЕ: */
+  max-height: 300px; /* Максимальная высота фото в карточке */
 }
 .wish-card .wish-image img {
-  display: block; max-width: 100%; max-height: 100%;
-  width: auto; height: auto; object-fit: contain;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain; /* Картинка вписывается, не обрезаясь */
 }
 
 .wish-card .price {
@@ -213,3 +238,54 @@ header p {
 
 /* Если бронь ваша */
 .wish-card.is-reserved.is-mine::before { content: 'ВАША БРОНЬ'; }
+
+/* ==== SKELETON (загрузка) ==== */
+.wish-card.skeleton {
+  pointer-events: none;
+  cursor: default;
+  animation: none;
+}
+
+.sk-line,
+.sk-image {
+  background: #2a2a2a;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sk-line::after,
+.sk-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+.sk-title {
+  height: 14px;
+  width: 70%;
+}
+
+.sk-image {
+  flex: 1 1 auto;
+  min-height: 120px;
+  width: 100%;
+}
+
+.sk-price {
+  height: 14px;
+  width: 40%;
+  margin-top: auto;
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

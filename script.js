@@ -62,6 +62,20 @@ function formatPrice(price, currency) {
   return cur === 'RUB' ? `${formatted} ${symbol}` : `${symbol}${formatted}`;
 }
 
+// ==== СКЕЛЕТОНЫ ====
+function renderSkeletons() {
+  emptyState.style.display = 'none';
+  const card = `
+    <div class="wish-card skeleton">
+      <div class="sk-line sk-title"></div>
+      <div class="sk-image"></div>
+      <div class="sk-line sk-price"></div>
+    </div>
+  `;
+  wishList.innerHTML = card.repeat(6);
+  drawDividers();
+}
+
 // ============================================================
 //  ЗАГРУЗКА И ОТРИСОВКА
 // ============================================================
@@ -96,20 +110,36 @@ function renderWishes() {
     card.addEventListener('click', () => openModal(Number(card.dataset.id)));
   });
 
+  // Следим за загрузкой картинок, чтобы обновить полоски
+  document.querySelectorAll('.wish-card img').forEach(img => {
+    img.addEventListener('load', drawDividers);
+    img.addEventListener('error', drawDividers);
+  });
+
   drawDividers();
+  observeCards(); // Включаем ResizeObserver
 }
 
 async function loadWishes() {
-  // 1. Показываем кэш моментально (если он есть)
   const cached = localStorage.getItem(CACHE_KEY);
-  if (cached) {
+  
+  if (!cached) {
+    renderSkeletons();
+  } else {
     try { 
       wishes = JSON.parse(cached); 
       renderWishes(); 
     } catch(e) {}
   }
 
-  // 2. В фоне запрашиваем свежие данные напрямую с сервера
+  let skeletonTimer;
+  if (!cached) {
+    skeletonTimer = setTimeout(() => {
+      if (wishList.querySelector('.skeleton')) return;
+      renderSkeletons();
+    }, 300);
+  }
+
   try {
     const res = await fetch(`${API_URL}?select=*&order=id.asc`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -118,12 +148,18 @@ async function loadWishes() {
     if (!res.ok) throw new Error('Network error');
     
     wishes = await res.json();
-    
-    // Сохраняем в кэш для следующего быстрого запуска
     localStorage.setItem(CACHE_KEY, JSON.stringify(wishes));
+    
+    clearTimeout(skeletonTimer);
     renderWishes();
+    
   } catch (err) {
-    console.log('Работаем с локальными данными, база не ответила.');
+    console.log('Работаем с локальными данными.');
+    clearTimeout(skeletonTimer);
+    if (!cached) {
+      wishList.innerHTML = '';
+      emptyState.style.display = '';
+    }
   }
 }
 
@@ -190,7 +226,7 @@ modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) clo
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalOverlay.classList.contains('active')) closeModal(); });
 
 // ============================================================
-//  ДЕЙСТВИЕ (Забронировать / Отменить)
+//  ДЕЙСТВИЕ
 // ============================================================
 modalAction.addEventListener('click', async () => {
   if (!activeWishId) return;
@@ -204,14 +240,12 @@ modalAction.addEventListener('click', async () => {
     newStatus = 'wanted'; newReservedBy = null;
   } else return;
 
-  // 1. Оптимистичное обновление (мгновенно в интерфейсе)
   wish.status = newStatus; 
   wish.reserved_by = newReservedBy;
   closeModal(); 
   renderWishes();
-  localStorage.setItem(CACHE_KEY, JSON.stringify(wishes)); // Обновляем кэш
+  localStorage.setItem(CACHE_KEY, JSON.stringify(wishes));
 
-  // 2. Отправка в базу в фоне
   try {
     await fetch(`${API_URL}?id=eq.${activeWishId}`, {
       method: 'PATCH',
@@ -228,22 +262,30 @@ modalAction.addEventListener('click', async () => {
       })
     });
   } catch (err) {
-    alert('Ошибка синхронизации. Сохранено только на этом устройстве.');
+    alert('Ошибка синхронизации.');
   }
 });
 
 // ============================================================
-//  ФИЛЬТРЫ И РАЗДЕЛИТЕЛИ
+//  ФИЛЬТРЫ
 // ============================================================
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentFilter = btn.dataset.filter;
-    renderWishes();
+    
+    if (wishes.length === 0) {
+      renderSkeletons();
+    } else {
+      renderWishes();
+    }
   });
 });
 
+// ============================================================
+//  УМНЫЕ РАЗДЕЛИТЕЛИ (Без таймеров)
+// ============================================================
 function drawDividers() {
   document.querySelectorAll('.card-divider').forEach(el => el.remove());
   const cards = Array.from(document.querySelectorAll('.wish-card')).filter(c => c.style.display !== 'none');
@@ -274,7 +316,24 @@ function drawDividers() {
     });
   });
 }
-let resizeT; window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(drawDividers, 150); });
+
+// ResizeObserver — сам следит за изменением размера карточек
+const cardObserver = new ResizeObserver(() => {
+  // Используем requestAnimationFrame, чтобы не нагружать браузер
+  requestAnimationFrame(drawDividers);
+});
+
+function observeCards() {
+  document.querySelectorAll('.wish-card').forEach(card => {
+    cardObserver.observe(card);
+  });
+}
+
+let resizeT; 
+window.addEventListener('resize', () => { 
+  clearTimeout(resizeT); 
+  resizeT = setTimeout(drawDividers, 150); 
+});
 
 // ============================================================
 //  СТАРТ
