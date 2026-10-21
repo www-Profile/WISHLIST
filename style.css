@@ -25,13 +25,24 @@ header p { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; co
   text-align: center; margin-bottom: 10px;
   padding: 20px; border: 1px solid #2a2a2a; border-radius: 4px;
 }
-.countdown-label {
-  display: block; font-size: 0.75rem; letter-spacing: 4px;
-  text-transform: uppercase; color: #777; margin-bottom: 10px;
-}
 .countdown-value {
+  display: block; /* Чтобы занимал свою строку */
   font-size: 2rem; font-weight: 700; color: #FF6347;
   letter-spacing: 2px; font-variant-numeric: tabular-nums;
+  margin-bottom: 8px; /* Отступ до подписи */
+}
+.countdown-label {
+  display: block; font-size: 0.6rem; letter-spacing: 4px;
+  text-transform: uppercase; color: #777;
+}
+
+/* Стили для маленьких букв в таймере */
+.countdown-value small {
+  font-size: 0.5em;      /* Делаем буквы в 2 раза меньше цифр */
+  font-weight: 400;      /* Убираем жирность */
+  letter-spacing: 0;     /* Убираем лишнее расстояние */
+  margin-right: 4px;     /* Небольшой отступ от цифры */
+  color: #FF6347;           /* Делаем их чуть бледнее */
 }
 
 /* ==== FILTERS ==== */

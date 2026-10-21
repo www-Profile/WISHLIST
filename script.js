@@ -24,10 +24,19 @@ if (BIRTHDAY < new Date()) BIRTHDAY.setFullYear(BIRTHDAY.getFullYear() + 1);
 function updateCountdown() {
   const diff = BIRTHDAY - new Date();
   if (diff <= 0) { document.getElementById('countdown-text').textContent = 'Сегодня'; return; }
-  const d = Math.floor(diff / 86400000), h = Math.floor((diff / 3600000) % 24), m = Math.floor((diff / 60000) % 60), s = Math.floor((diff / 1000) % 60);
-  document.getElementById('countdown-text').textContent = `${d}д ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff / 3600000) % 24);
+  const m = Math.floor((diff / 60000) % 60);
+  
+  const pad = n => String(n).padStart(2, '0');
+  
+  // Оборачиваем буквы в тег <small>
+  document.getElementById('countdown-text').innerHTML = 
+    `${pad(d)}<small>д</small> ${pad(h)}<small>ч</small> ${pad(m)}<small>м</small>`;
 }
-setInterval(updateCountdown, 1000); updateCountdown();
+setInterval(updateCountdown, 1000); 
+updateCountdown();
 
 // ============================================================
 //  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
