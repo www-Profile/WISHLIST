@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1a1a">
 <title>Wishlist</title>
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,15 +25,17 @@
       <button class="filter-btn" data-filter="reserved">Забронировано</button>
     </div>
 
-    <!-- Сюда скрипт будет вставлять карточки -->
+    <!-- Сюда скрипт вставляет карточки -->
     <div class="wish-list" id="wish-list"></div>
+    
+    <!-- Пустое состояние вынесено отдельно, чтобы не удалялось при рендере карточек -->
     <div class="empty" id="empty-state" style="display:none">
       <div class="empty-icon">🎁</div>
       <div class="empty-text">Здесь пока ничего нет</div>
     </div>
   </div>
 
-  <!-- МОДАЛКА -->
+  <!-- МОДАЛКА КАРТОЧКИ -->
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal" id="modal">
       <div class="modal-header">
@@ -49,7 +53,24 @@
     </div>
   </div>
 
-  <!-- Никакой библиотеки supabase-js, только наш скрипт -->
+  <!-- МОДАЛКА ВВОДА PIN-КОДА (Открывается поверх основной) -->
+  <div class="modal-overlay" id="pin-modal-overlay" style="z-index: 110;">
+    <div class="modal pin-modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Введите 4-значный код</h2>
+        <button class="modal-close" id="pin-modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: #888; text-align: center;">Придумайте код, чтобы забронировать эту вещь. Запомните его, чтобы потом отменить бронь!</p>
+        <input type="tel" id="pin-input" maxlength="4" placeholder="••••" style="width: 100%; padding: 15px; background: #2a2a2a; border: 1px solid #444; color: #fff; font-size: 1.5rem; text-align: center; letter-spacing: 10px; border-radius: 4px; outline: none;">
+        <div id="pin-error" style="color: #FF6347; text-align: center; font-size: 0.8rem; margin-top: 10px; display: none;">Неверный код!</div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-action" id="pin-submit">Подтвердить</button>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>

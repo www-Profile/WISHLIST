@@ -1,0 +1,9 @@
+{
+  "name": "Wishlist",
+  "short_name": "Wishlist",
+  "description": "Список желаний на день рождения",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a"
+}

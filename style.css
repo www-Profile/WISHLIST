@@ -18,9 +18,7 @@ body {
 /* ==== HEADER ==== */
 header { text-align: center; margin-bottom: 30px; }
 header h1 { font-size: 2rem; font-weight: 800; letter-spacing: 8px; color: #fff; }
-header p {
-  font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: #777;
-}
+header p { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: #777; }
 
 /* ==== COUNTDOWN ==== */
 .countdown {
@@ -64,24 +62,12 @@ header p {
 
 /* ==== ПУСТОЕ СОСТОЯНИЕ ==== */
 .empty {
-  grid-column: 1 / -1;
   text-align: center;
   padding: 80px 20px;
   animation: appear 0.5s ease;
 }
-
-.empty-icon {
-  font-size: 5rem;
-  margin-bottom: 15px;
-  opacity: 0.8;
-}
-
-.empty-text {
-  font-size: 0.9rem;
-  color: #666;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
+.empty-icon { font-size: 5rem; margin-bottom: 15px; opacity: 0.8; }
+.empty-text { font-size: 0.9rem; color: #666; letter-spacing: 2px; text-transform: uppercase; }
 
 /* ==== CARD ==== */
 .wish-card {
@@ -91,7 +77,6 @@ header p {
   transition: background 0.25s ease;
   animation: appear 0.35s ease;
   cursor: pointer;
-
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -99,8 +84,6 @@ header p {
 }
 
 @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
-
-.wish-card:hover { background: #202020; }
 
 .wish-card h3 {
   font-size: 0.9rem; font-weight: 600; color: #fff;
@@ -115,16 +98,16 @@ header p {
   overflow: hidden;
   border-radius: 2px;
   min-height: 0;
-  /* ДОБАВЛЯЕМ ОГРАНИЧЕНИЕ: */
-  max-height: 300px; /* Максимальная высота фото в карточке */
+  max-height: 300px;
 }
+
 .wish-card .wish-image img {
   display: block;
   max-width: 100%;
   max-height: 100%;
   width: auto;
   height: auto;
-  object-fit: contain; /* Картинка вписывается, не обрезаясь */
+  object-fit: contain;
 }
 
 .wish-card .price {
@@ -135,17 +118,6 @@ header p {
 /* ==== RESERVED-состояние ==== */
 .wish-card.is-reserved { opacity: 0.55; }
 .wish-card.is-reserved:hover { opacity: 0.85; }
-
-.wish-card.is-reserved::before {
-  content: 'ЗАБРОНИРОВАНО';
-  position: absolute;
-  top: 12px; right: 12px;
-  background: #FF6347; color: #1a1a1a;
-  font-size: 0.5rem; padding: 3px 6px;
-  letter-spacing: 1px; font-weight: 700;
-  border-radius: 2px; z-index: 2;
-}
-.wish-card.is-reserved.is-mine::before { content: 'ВАША БРОНЬ'; }
 
 /* ==== MODAL ==== */
 .modal-overlay {
@@ -229,15 +201,20 @@ header p {
 .modal-action.is-reserved:hover { background: transparent; color: #FF6347; }
 .modal-action:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* ==== PIN-МОДАЛКА ==== */
+.pin-modal { max-width: 360px; }
+.pin-modal .modal-header { justify-content: center; border-bottom: none; padding-bottom: 0; }
+.pin-modal .modal-title { text-align: center; font-size: 1.1rem; }
+.pin-modal .modal-close { position: absolute; right: 15px; top: 15px; }
+#pin-input:focus { border-color: #FF6347; }
+
+/* ==== MOBILE ==== */
 @media (max-width: 600px) {
   .countdown-value { font-size: 1.5rem; }
   .modal-header { padding: 24px 20px 16px; }
   .modal-body { padding: 20px; }
   .modal-footer { padding: 0 20px 20px; }
 }
-
-/* Если бронь ваша */
-.wish-card.is-reserved.is-mine::before { content: 'ВАША БРОНЬ'; }
 
 /* ==== SKELETON (загрузка) ==== */
 .wish-card.skeleton {
@@ -268,22 +245,9 @@ header p {
   animation: shimmer 1.4s infinite;
 }
 
-.sk-title {
-  height: 14px;
-  width: 70%;
-}
-
-.sk-image {
-  flex: 1 1 auto;
-  min-height: 120px;
-  width: 100%;
-}
-
-.sk-price {
-  height: 14px;
-  width: 40%;
-  margin-top: auto;
-}
+.sk-title { height: 14px; width: 70%; }
+.sk-image { flex: 1 1 auto; min-height: 120px; width: 100%; }
+.sk-price { height: 14px; width: 40%; margin-top: auto; }
 
 @keyframes shimmer {
   0%   { transform: translateX(-100%); }
