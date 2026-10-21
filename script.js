@@ -1,32 +1,29 @@
 // ============================================================
-//  КОНФИГУРАЦИЯ SUPABASE
+//  НАСТРОЙКИ API
 // ============================================================
 const SUPABASE_URL = 'https://cnrgmrwxglmkysqvvivh.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_DtksfpZ0Nn1-SJBbiyETfw_Ak8t807o';
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_KEY = 'sb_publishable_DtksfpZ0Nn1-SJBbiyETfw_Ak8t807o';
+const API_URL = `${SUPABASE_URL}/rest/v1/wishes`;
 
 // ============================================================
-//  ID ПОЛЬЗОВАТЕЛЯ
+//  ID УСТРОЙСТВА (fingerprint)
 // ============================================================
+function hashString(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
 function getUserId() {
   let id = localStorage.getItem('wishlist_user_id');
   if (!id) {
-    id = 'user_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const parts = [screen.width, screen.height, new Date().getTimezoneOffset(), navigator.language, navigator.platform, navigator.hardwareConcurrency];
+    id = 'dev_' + hashString(parts.join('|'));
     localStorage.setItem('wishlist_user_id', id);
   }
   return id;
 }
-
 const USER_ID = getUserId();
-
-// ============================================================
-//  ДАТА ДНЯ РОЖДЕНИЯ — 6 ДЕКАБРЯ
-// ============================================================
-const BIRTHDAY = new Date(new Date().getFullYear(), 11, 6);
-if (BIRTHDAY < new Date()) {
-  BIRTHDAY.setFullYear(BIRTHDAY.getFullYear() + 1);
-}
+const CACHE_KEY = 'wishlist_data_cache';
 
 // ============================================================
 //  ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
@@ -34,271 +31,148 @@ if (BIRTHDAY < new Date()) {
 let currentFilter = 'wanted';
 let activeWishId = null;
 let wishes = [];
+const IMAGES_PATH = 'images/';
+const currencySymbols = { RUB: '₽', USD: '$', EUR: '€' };
 
 const wishList = document.getElementById('wish-list');
-const filterButtons = document.querySelectorAll('.filter-btn');
-const countdownText = document.getElementById('countdown-text');
+const emptyState = document.getElementById('empty-state');
 
-const currencySymbols = { RUB: '₽', USD: '$', EUR: '€' };
-const currencyFormats = { RUB: 'ru-RU', USD: 'en-US', EUR: 'de-DE' };
+// ============================================================
+//  ОБРАТНЫЙ ОТСЧЁТ
+// ============================================================
+const BIRTHDAY = new Date(new Date().getFullYear(), 11, 6);
+if (BIRTHDAY < new Date()) BIRTHDAY.setFullYear(BIRTHDAY.getFullYear() + 1);
 
-// Папка с локальными картинками
-const IMAGES_PATH = 'images/';
-
-// ==== ОБРАТНЫЙ ОТСЧЁТ ====
 function updateCountdown() {
   const diff = BIRTHDAY - new Date();
-  if (diff <= 0) {
-    countdownText.textContent = 'Сегодня';
-    return;
-  }
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diff / (1000 * 60)) % 60);
-  const seconds = Math.floor((diff / 1000) % 60);
-  const pad = (n) => String(n).padStart(2, '0');
-  countdownText.textContent = `${days}д ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  if (diff <= 0) { document.getElementById('countdown-text').textContent = 'Сегодня'; return; }
+  const d = Math.floor(diff / 86400000), h = Math.floor((diff / 3600000) % 24), m = Math.floor((diff / 60000) % 60), s = Math.floor((diff / 1000) % 60);
+  document.getElementById('countdown-text').textContent = `${d}д ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
-setInterval(updateCountdown, 1000);
-updateCountdown();
+setInterval(updateCountdown, 1000); updateCountdown();
 
-// ==== ФОРМАТ ЦЕНЫ ====
+// ============================================================
+//  ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================================
 function formatPrice(price, currency) {
-  if (price === null || price === undefined || price === '') return '';
+  if (!price) return '';
   const cur = currency || 'RUB';
   const symbol = currencySymbols[cur] || '₽';
-  const locale = currencyFormats[cur] || 'ru-RU';
-  const formatted = Number(price).toLocaleString(locale);
+  const formatted = Number(price).toLocaleString('ru-RU');
   return cur === 'RUB' ? `${formatted} ${symbol}` : `${symbol}${formatted}`;
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text == null ? '' : text;
-  return div.innerHTML;
-}
-
-// ==== ЗАГРУЗКА ====
-async function loadWishes() {
-  renderSkeletons(); // показываем серые блоки пока грузим
-
-  const { data, error } = await supabaseClient
-    .from('wishes')
-    .select('*')
-    .order('id', { ascending: true });
-
-  if (error) {
-    console.error('Ошибка загрузки:', error);
-    wishList.innerHTML = `<div class="empty">ОШИБКА ЗАГРУЗКИ</div>`;
-    return;
-  }
-
-  wishes = data;
-  renderWishes();
-}
-
-// ==== СКЕЛЕТОНЫ (заглушки на время загрузки) ====
-function renderSkeletons(count = 6) {
-  const card = `
-    <div class="wish-card skeleton">
-      <div class="sk-line sk-title"></div>
-      <div class="sk-image"></div>
-      <div class="sk-line sk-price"></div>
-    </div>
-  `;
-  wishList.innerHTML = card.repeat(count);
-  drawDividers();
-}
-
-// ==== ОТРИСОВКА БЛОКОВ ====
+// ============================================================
+//  ЗАГРУЗКА И ОТРИСОВКА
+// ============================================================
 function renderWishes() {
   const filtered = wishes.filter(w => w.status === currentFilter);
 
   if (filtered.length === 0) {
-    wishList.innerHTML = `<div class="empty">ПУСТО</div>`;
+    wishList.innerHTML = '';
+    emptyState.style.display = '';
     return;
   }
+  emptyState.style.display = 'none';
 
   wishList.innerHTML = filtered.map(w => {
-    const imageHTML = w.image
-      ? `<div class="wish-image"><img src="${IMAGES_PATH}${escapeHtml(w.image)}" alt="" loading="lazy"></div>`
-      : '';
-
-    const priceHTML = w.price
-      ? `<div class="price">${formatPrice(w.price, w.currency)}</div>`
-      : '';
-
+    const imageHTML = w.image ? `<div class="wish-image"><img src="${IMAGES_PATH}${w.image}" alt="" loading="lazy"></div>` : '';
+    const priceHTML = w.price ? `<div class="price">${formatPrice(w.price, w.currency)}</div>` : '';
+    const isMine = w.reserved_by === USER_ID;
+    
     let extraClass = '';
-    if (w.status === 'reserved') extraClass = 'is-reserved';
-    if (w.status === 'done') extraClass = 'is-done';
+    if (w.status === 'reserved') extraClass = isMine ? 'is-reserved is-mine' : 'is-reserved';
 
     return `
-      <div class="wish-card ${extraClass}" data-id="${w.id}">
-        <h3>${escapeHtml(w.name)}</h3>
+      <article class="wish-card ${extraClass}" data-id="${w.id}">
+        <h3>${w.name}</h3>
         ${imageHTML}
         ${priceHTML}
-      </div>
+      </article>
     `;
   }).join('');
 
   document.querySelectorAll('.wish-card').forEach(card => {
-    card.addEventListener('click', () => {
-      openModal(Number(card.dataset.id));
-    });
+    card.addEventListener('click', () => openModal(Number(card.dataset.id)));
   });
 
   drawDividers();
 }
 
-// ============================================================
-//  РИСУЕМ ПОЛОСКИ МЕЖДУ КАРТОЧКАМИ
-// ============================================================
-function drawDividers() {
-  const cards = document.querySelectorAll('.wish-card');
-  if (!cards.length) return;
-
-  document.querySelectorAll('.card-divider').forEach(el => el.remove());
-
-  cards.forEach((card) => {
-    const style = getComputedStyle(card);
-    const padTop = parseFloat(style.paddingTop);
-    const padBottom = parseFloat(style.paddingBottom);
-    const padLeft = parseFloat(style.paddingLeft);
-    const padRight = parseFloat(style.paddingRight);
-
-    const innerHeight = card.offsetHeight - padTop - padBottom;
-    const innerWidth = card.offsetWidth - padLeft - padRight;
-
-    const rightDivider = document.createElement('div');
-    rightDivider.className = 'card-divider card-divider-right';
-    rightDivider.style.position = 'absolute';
-    rightDivider.style.top = padTop + 'px';
-    rightDivider.style.right = '-2px';
-    rightDivider.style.width = '2px';
-    rightDivider.style.height = innerHeight + 'px';
-    rightDivider.style.background = '#FF6347';
-    rightDivider.style.borderRadius = '10px';
-    rightDivider.style.zIndex = '1';
-    card.appendChild(rightDivider);
-
-    const bottomDivider = document.createElement('div');
-    bottomDivider.className = 'card-divider card-divider-bottom';
-    bottomDivider.style.position = 'absolute';
-    bottomDivider.style.left = padLeft + 'px';
-    bottomDivider.style.bottom = '-2px';
-    bottomDivider.style.width = innerWidth + 'px';
-    bottomDivider.style.height = '2px';
-    bottomDivider.style.background = '#FF6347';
-    bottomDivider.style.borderRadius = '10px';
-    bottomDivider.style.zIndex = '1';
-    card.appendChild(bottomDivider);
-  });
-
-  hideEdgeDividers();
-}
-
-function hideEdgeDividers() {
-  const cards = Array.from(document.querySelectorAll('.wish-card'));
-  if (!cards.length) return;
-
-  const rows = {};
-  cards.forEach((card, i) => {
-    const top = Math.round(card.getBoundingClientRect().top);
-    if (!rows[top]) rows[top] = [];
-    rows[top].push({ card, index: i });
-  });
-
-  const rowKeys = Object.keys(rows).map(Number).sort((a, b) => a - b);
-
-  rowKeys.forEach((top, rowIdx) => {
-    const rowCards = rows[top];
-    const isLastRow = rowIdx === rowKeys.length - 1;
-
-    rowCards.forEach((item, colIdx) => {
-      const isLastCol = colIdx === rowCards.length - 1;
-
-      if (isLastCol) {
-        const r = item.card.querySelector('.card-divider-right');
-        if (r) r.remove();
-      }
-
-      if (isLastRow) {
-        const b = item.card.querySelector('.card-divider-bottom');
-        if (b) b.remove();
-      }
-    });
-  });
-}
-
-let resizeTimeout;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(drawDividers, 150);
-});
-
-// Автообновление разделителей каждые 5 секунд
-setInterval(() => {
-  if (document.querySelectorAll('.wish-card').length) {
-    drawDividers();
+async function loadWishes() {
+  // 1. Показываем кэш моментально (если он есть)
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (cached) {
+    try { 
+      wishes = JSON.parse(cached); 
+      renderWishes(); 
+    } catch(e) {}
   }
-}, 1000);
 
-// ==== МОДАЛКА ====
+  // 2. В фоне запрашиваем свежие данные напрямую с сервера
+  try {
+    const res = await fetch(`${API_URL}?select=*&order=id.asc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    
+    if (!res.ok) throw new Error('Network error');
+    
+    wishes = await res.json();
+    
+    // Сохраняем в кэш для следующего быстрого запуска
+    localStorage.setItem(CACHE_KEY, JSON.stringify(wishes));
+    renderWishes();
+  } catch (err) {
+    console.log('Работаем с локальными данными, база не ответила.');
+  }
+}
+
+// ============================================================
+//  МОДАЛКА
+// ============================================================
 const modalOverlay = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
 const modalImage = document.getElementById('modal-image');
 const modalPrice = document.getElementById('modal-price');
 const modalLink = document.getElementById('modal-link');
 const modalAction = document.getElementById('modal-action');
-const modalClose = document.getElementById('modal-close');
 
 function openModal(id) {
   const wish = wishes.find(w => w.id === id);
   if (!wish) return;
-
   activeWishId = id;
-  modalTitle.textContent = wish.name;
 
-  // Фото — то же самое, что и в блоке
+  modalTitle.textContent = wish.name;
+  
   if (wish.image) {
-    modalImage.innerHTML = `<img src="${IMAGES_PATH}${escapeHtml(wish.image)}" alt="" loading="lazy">`;
+    modalImage.innerHTML = `<img src="${IMAGES_PATH}${wish.image}" alt="">`;
     modalImage.style.display = '';
   } else {
-    modalImage.innerHTML = '';
     modalImage.style.display = 'none';
   }
 
-  // Цена
   modalPrice.textContent = wish.price ? formatPrice(wish.price, wish.currency) : '';
 
-  // Ссылка
-  if (wish.url) {
+  if (wish.url && wish.url !== 'ноль' && wish.url !== 'Ноль') {
     modalLink.href = wish.url;
     modalLink.style.display = '';
   } else {
-    modalLink.removeAttribute('href');
     modalLink.style.display = 'none';
   }
 
-  // Логика кнопки
   const isMine = wish.reserved_by === USER_ID;
-
-  if (wish.status === 'done') {
-    modalAction.textContent = 'Уже исполнено';
-    modalAction.classList.remove('is-reserved');
-    modalAction.disabled = true;
+  if (wish.status === 'wanted') {
+    modalAction.textContent = 'Забронировать';
+    modalAction.className = 'modal-action';
+    modalAction.disabled = false;
   } else if (wish.status === 'reserved' && isMine) {
     modalAction.textContent = 'Отменить бронь';
-    modalAction.classList.add('is-reserved');
+    modalAction.className = 'modal-action is-reserved';
     modalAction.disabled = false;
-  } else if (wish.status === 'reserved' && !isMine) {
-    modalAction.textContent = 'Забранировано';
-    modalAction.classList.remove('is-reserved');
-    modalAction.disabled = true;
   } else {
-    modalAction.textContent = 'Забранировать';
-    modalAction.classList.remove('is-reserved');
-    modalAction.disabled = false;
+    modalAction.textContent = 'Забронировано';
+    modalAction.className = 'modal-action';
+    modalAction.disabled = true;
   }
 
   modalOverlay.classList.add('active');
@@ -311,70 +185,98 @@ function closeModal() {
   activeWishId = null;
 }
 
-modalClose.addEventListener('click', closeModal);
-modalOverlay.addEventListener('click', (e) => {
-  if (e.target === modalOverlay) closeModal();
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modalOverlay.classList.contains('active')) closeModal();
-});
+document.getElementById('modal-close').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalOverlay.classList.contains('active')) closeModal(); });
 
-// ==== БРОНИРОВАНИЕ ====
+// ============================================================
+//  ДЕЙСТВИЕ (Забронировать / Отменить)
+// ============================================================
 modalAction.addEventListener('click', async () => {
   if (!activeWishId) return;
   const wish = wishes.find(w => w.id === activeWishId);
   if (!wish) return;
 
   let newStatus, newReservedBy;
-
   if (wish.status === 'wanted') {
-    newStatus = 'reserved';
-    newReservedBy = USER_ID;
+    newStatus = 'reserved'; newReservedBy = USER_ID;
   } else if (wish.status === 'reserved' && wish.reserved_by === USER_ID) {
-    newStatus = 'wanted';
-    newReservedBy = null;
-  } else {
-    return;
-  }
+    newStatus = 'wanted'; newReservedBy = null;
+  } else return;
 
-  const { error } = await supabaseClient
-    .from('wishes')
-    .update({ status: newStatus, reserved_by: newReservedBy })
-    .eq('id', activeWishId);
-
-  if (error) {
-    console.error(error);
-    alert('Не удалось сохранить. Попробуй ещё раз.');
-    return;
-  }
-
-  wish.status = newStatus;
+  // 1. Оптимистичное обновление (мгновенно в интерфейсе)
+  wish.status = newStatus; 
   wish.reserved_by = newReservedBy;
-  closeModal();
+  closeModal(); 
   renderWishes();
+  localStorage.setItem(CACHE_KEY, JSON.stringify(wishes)); // Обновляем кэш
+
+  // 2. Отправка в базу в фоне
+  try {
+    await fetch(`${API_URL}?id=eq.${activeWishId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        status: newStatus,
+        reserved_by: newReservedBy,
+        reserved_at: newReservedBy ? new Date().toISOString() : null
+      })
+    });
+  } catch (err) {
+    alert('Ошибка синхронизации. Сохранено только на этом устройстве.');
+  }
 });
 
-// ==== ФИЛЬТРЫ ====
-filterButtons.forEach(btn => {
+// ============================================================
+//  ФИЛЬТРЫ И РАЗДЕЛИТЕЛИ
+// ============================================================
+document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    filterButtons.forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentFilter = btn.dataset.filter;
     renderWishes();
   });
 });
 
-// ==== СТАРТ + REALTIME ====
-async function init() {
-  await loadWishes();
+function drawDividers() {
+  document.querySelectorAll('.card-divider').forEach(el => el.remove());
+  const cards = Array.from(document.querySelectorAll('.wish-card')).filter(c => c.style.display !== 'none');
+  if (!cards.length) return;
 
-  supabaseClient
-    .channel('wishes-changes')
-    .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'wishes' },
-      () => loadWishes()
-    )
-    .subscribe();
+  cards.forEach(card => {
+    const s = getComputedStyle(card);
+    const pt = parseFloat(s.paddingTop), pb = parseFloat(s.paddingBottom), pl = parseFloat(s.paddingLeft), pr = parseFloat(s.paddingRight);
+    
+    const r = document.createElement('div'); r.className = 'card-divider card-divider-right';
+    r.style.cssText = `position:absolute;top:${pt}px;right:-2px;width:2px;height:${card.offsetHeight-pt-pb}px;background:#FF6347;border-radius:10px;z-index:1;`;
+    card.appendChild(r);
+
+    const b = document.createElement('div'); b.className = 'card-divider card-divider-bottom';
+    b.style.cssText = `position:absolute;left:${pl}px;bottom:-2px;width:${card.offsetWidth-pl-pr}px;height:2px;background:#FF6347;border-radius:10px;z-index:1;`;
+    card.appendChild(b);
+  });
+
+  const rows = {};
+  cards.forEach(c => { const top = Math.round(c.getBoundingClientRect().top); (rows[top] ||= []).push(c); });
+  const rowKeys = Object.keys(rows).map(Number).sort((a,b)=>a-b);
+
+  rowKeys.forEach((top, ri) => {
+    const row = rows[top], lastRow = ri === rowKeys.length - 1;
+    row.forEach((card, ci) => {
+      if (ci === row.length - 1) card.querySelector('.card-divider-right')?.remove();
+      if (lastRow) card.querySelector('.card-divider-bottom')?.remove();
+    });
+  });
 }
+let resizeT; window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(drawDividers, 150); });
 
-init();
+// ============================================================
+//  СТАРТ
+// ============================================================
+loadWishes();
