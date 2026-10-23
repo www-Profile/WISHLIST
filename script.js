@@ -143,6 +143,7 @@ const modalOverlay = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
 const modalImage = document.getElementById('modal-image');
 const modalPrice = document.getElementById('modal-price');
+const modalDescription = document.getElementById('modal-description'); // Новая переменная
 const modalLink = document.getElementById('modal-link');
 const modalAction = document.getElementById('modal-action');
 
@@ -151,8 +152,10 @@ function openModal(id) {
   if (!wish) return;
   activeWishId = id;
 
+  // Название
   modalTitle.textContent = wish.name;
   
+  // Картинка
   if (wish.image) {
     modalImage.innerHTML = `<img src="${IMAGES_PATH}${wish.image}" alt="">`;
     modalImage.style.display = '';
@@ -160,8 +163,14 @@ function openModal(id) {
     modalImage.style.display = 'none';
   }
 
+  // Цена
   modalPrice.textContent = wish.price ? formatPrice(wish.price, wish.currency) : '';
 
+  // Описание (поддерживает и русское 'описание', и английское 'description')
+  const desc = wish['описание'] || wish.description || '';
+  modalDescription.textContent = desc;
+
+  // Ссылка
   if (wish.url && wish.url !== 'ноль' && wish.url !== 'Ноль') {
     modalLink.href = wish.url;
     modalLink.style.display = '';
@@ -169,6 +178,7 @@ function openModal(id) {
     modalLink.style.display = 'none';
   }
 
+  // Логика кнопки (Забронировать / Снять бронь)
   if (wish.status === 'wanted') {
     modalAction.textContent = 'Забронировать';
     modalAction.className = 'modal-action';

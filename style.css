@@ -264,3 +264,16 @@ header p { font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; co
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* ==== ОПИСАНИЕ В МОДАЛКЕ ==== */
+.modal-description {
+  font-size: 0.85rem;
+  color: #aaa;
+  line-height: 1.5;
+  margin-top: -4px; /* Чуть ближе к цене */
+}
+
+/* Если описания нет, блок не занимает место */
+.modal-description:empty {
+  display: none;
+}
