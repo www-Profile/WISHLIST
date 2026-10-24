@@ -5,9 +5,13 @@
   font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
+html {
+  background-color: #1a1a1a; /* Цвет для Safe Area */
+  height: 100%;
+}
 body {
-  background: #1a1a1a;
-  min-height: 100vh;
+  background-color: #1a1a1a; /* Уже есть, дублируем для надежности */
+  min-height: 100%;
   padding: 20px 20px;
   color: #eaeaea;
   -webkit-font-smoothing: antialiased;
