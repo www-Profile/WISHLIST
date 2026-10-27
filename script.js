@@ -104,34 +104,42 @@ function renderWishes() {
 
 async function loadWishes() {
   const cached = localStorage.getItem(CACHE_KEY);
-  
-  // Показываем кэш (если есть) или скелетоны
+
   if (cached) {
-    try { 
-      wishes = JSON.parse(cached); 
-      renderWishes(); 
+    try {
+      wishes = JSON.parse(cached);
+      renderWishes();
     } catch(e) {}
   } else {
     renderSkeletons();
   }
 
-  // Запрашиваем свежие данные
+  // ← Таймаут 12 секунд
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+
   try {
     const res = await fetch(`${API_URL}?select=*&order=id.asc`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      signal: controller.signal
     });
-    
+    clearTimeout(timeoutId);
+
     if (!res.ok) throw new Error('Network error');
-    
+
     wishes = await res.json();
     localStorage.setItem(CACHE_KEY, JSON.stringify(wishes));
     renderWishes();
-    
+
   } catch (err) {
-    console.log('Работаем с локальными данными.');
+    clearTimeout(timeoutId);
+    console.log('Работаем с локальными данными:', err.name);
+
     if (!cached) {
       wishList.innerHTML = '';
-      emptyState.style.display = ''; // Показываем "Пусто" если нет ни сети, ни кэша
+      emptyState.style.display = '';
+      emptyState.querySelector('.empty-text').textContent =
+        'Не удалось загрузить. Потяните вниз, чтобы обновить';
     }
   }
 }
@@ -236,10 +244,6 @@ function closePinModal() {
   // СБРОС КНОПКИ (На случай, если закрыли во время загрузки)
   pinSubmit.textContent = 'Подтвердить';
   pinSubmit.disabled = false;
-}
-
-function closePinModal() {
-  pinOverlay.classList.remove('active');
 }
 
 document.getElementById('pin-modal-close').addEventListener('click', closePinModal);
@@ -383,3 +387,7 @@ window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTi
 //  СТАРТ
 // ============================================================
 loadWishes();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
